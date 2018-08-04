@@ -2,6 +2,8 @@ class Game {
     constructor(player, map) {
         this.minimapObj = new MiniMap(map);
         this.player = player;
+        this.lastLoop = new Date;
+
         this.initialize();
     }
 
@@ -10,10 +12,25 @@ class Game {
     }
 
     gameCycle() {
+        var thisLoop = new Date;
+
         game.player.move();
-        camera.render(this.player, map)
+        camera.render(this.player, map);
         game.minimapObj.drawMiniMap(game.player);
-        setTimeout(game.gameCycle, 1000 / 30); // Aim for 30 FPS
+
+        var fps = 1000 / (thisLoop - game.lastLoop);
+        game.lastLoop = thisLoop;
+        game.printFPS(fps);
+
+        setTimeout(game.gameCycle, 1000 / 30);
+    }
+
+    printFPS(fps) {
+        camera.ctx.save;
+        camera.ctx.fillStyle = "black";
+        camera.ctx.font = "50px arial";
+        camera.ctx.fillText(Math.round(fps), 20, 70);
+        camera.ctx.restore();
     }
 }
 
@@ -25,8 +42,7 @@ class Player {
         this.speed = 0;
         this.rotation = rotation;
         this.moveSpeed = 0.18;
-        this.rotationSpeed = 6 * Math.PI / 180
-
+        this.rotationSpeed = 6 * Math.PI / 180;
     }
 
     move() {
@@ -51,7 +67,9 @@ class Map {
         this.size = size;
         this.wallTexture = new Bitmap('textures/wall.png', 64, 64);
         this.wallGrid = [
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 0, 1, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            [1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
@@ -66,11 +84,9 @@ class Map {
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 2, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 2, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [1, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 1, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 1, 0, 0, 0, 0, 2, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+            [1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
@@ -90,9 +106,9 @@ class Map {
         var self = this;
         var sin = Math.sin(angle);
         var cos = Math.cos(angle);
-        var noWall = { length2: Infinity };
+        var noWall = {length2: Infinity};
 
-        return ray({ x: point.x, y: point.y, height: 0, distance: 0 });
+        return ray({x: point.x, y: point.y, height: 0, distance: 0});
 
         function ray(origin) {
             var stepX = step(sin, cos, origin.x, origin.y);
@@ -119,7 +135,11 @@ class Map {
         function inspect(step, shiftX, shiftY, distance, offset) {
             var dx = cos < 0 ? shiftX : 0;
             var dy = sin < 0 ? shiftY : 0;
-            step.height = self.wallGrid[Math.floor(step.x - dx)][Math.floor(step.y - dy)];
+            var tempX = Math.floor(step.x - dx);
+            var tempY = Math.floor(step.y - dy);
+            if (tempX >= 0 && tempY >= 0 && tempX < 32 && tempY < 32) {
+                step.height = self.wallGrid[tempY][tempX];
+            }
             step.distance = distance + Math.sqrt(step.length2);
             if (shiftX) step.shading = cos < 0 ? 2 : 0;
             else step.shading = sin < 0 ? 2 : 1;
@@ -127,12 +147,6 @@ class Map {
             return step;
         }
     };
-
-    fillRandomWalls() {
-        for (var i = 0; i < this.size * this.size; i++) {
-            this.wallGrid[i] = Math.random() < 0.3 ? 1 : 0;
-        }
-    }
 }
 
 
@@ -155,7 +169,7 @@ class MiniMap {
         var ctx = miniMapDoc.getContext('2d');
         for (let y = 0; y < this.mapHeight; y++) {
             for (let x = 0; x < this.mapWidth; x++) {
-                var wall = map.wallGrid[x][y];
+                var wall = map.wallGrid[y][x];
                 if (wall > 0) {
                     ctx.fillStyle = 'rgb(200,200,200)';
                     ctx.fillRect(
@@ -176,8 +190,6 @@ class MiniMap {
         ctx.stroke();
     }
 }
-
-
 
 
 function bindKeys(player) {
@@ -226,7 +238,7 @@ function bindKeys(player) {
 }
 
 function isCollision(x, y) {
-    return (map.wallGrid[Math.floor(x)][Math.floor(y)] != 0);
+    return (map.wallGrid[Math.floor(y)][Math.floor(x)] != 0);
 }
 
 class Bitmap {
@@ -247,7 +259,7 @@ class Camera {
         this.resolution = resolution;
         this.spacing = this.width / resolution;
         this.focalLength = focalLength || 0.8;
-        this.range = 14;
+        this.range = 16;
         this.lightRange = 5;
         this.scale = (this.width + this.height) / 1200;
     }
@@ -263,16 +275,34 @@ class Camera {
     }
 
     render(player, map) {
-        // this.drawSky(player.direction, map.skybox, map.light);
+        this.drawFloor();
+        this.drawCeiling();
         this.drawColumns(player, map);
     }
+
+    drawFloor() {
+        this.ctx.save();
+        this.ctx.fillStyle = '#647985';
+        this.ctx.globalAlpha = 1;
+        this.ctx.fillRect(0, this.height * 0.5, this.width, this.height * 0.5);
+        this.ctx.restore();
+    }
+
+    drawCeiling() {
+        this.ctx.save();
+        this.ctx.fillStyle = "#e4e1e5";
+        this.ctx.globalAlpha = 1;
+        this.ctx.fillRect(0, 0, this.width, this.height * 0.5);
+        this.ctx.restore();
+    }
+
 
     drawColumns(player, map) {
         this.ctx.save();
         for (var column = 0; column < this.resolution; column++) {
             var x = column / this.resolution - 0.5;
             var angle = Math.atan2(x, this.focalLength);
-            var ray = map.cast(player, player.direction + angle, this.range);
+            var ray = map.cast(player, player.rotation + angle, this.range);
             this.drawColumn(column, ray, angle, map);
         }
         this.ctx.restore();
@@ -284,7 +314,8 @@ class Camera {
         var left = Math.floor(column * this.spacing);
         var width = Math.ceil(this.spacing);
         var hit = -1;
-        while (++hit < ray.length && ray[hit].height <= 0);
+
+        while (++hit < ray.length && ray[hit].height <= 0) ;
 
         for (var s = ray.length - 1; s >= 0; s--) {
             var step = ray[s];
@@ -295,64 +326,19 @@ class Camera {
 
                 ctx.globalAlpha = 1;
                 ctx.drawImage(texture.image, textureX, 0, 1, texture.height, left, wall.top, width, wall.height);
-
-                ctx.fillStyle = '#000000';
-                ctx.globalAlpha = Math.max((step.distance + step.shading) / this.lightRange - map.light, 0);
-                ctx.fillRect(left, wall.top, width, wall.height);
             }
-
-            ctx.fillStyle = '#ffffff';
-            ctx.globalAlpha = 0.15;
         }
 
     }
 
-    cast(point, angle, range) {
-        var self = this;
-        var sin = Math.sin(angle);
-        var cos = Math.cos(angle);
-        var noWall = {length2: Infinity};
-
-        return ray({x: point.x, y: point.y, height: 0, distance: 0});
-
-        function ray(origin) {
-            var stepX = step(sin, cos, origin.x, origin.y);
-            var stepY = step(cos, sin, origin.y, origin.x, true);
-            var nextStep = stepX.length2 < stepY.length2
-                ? inspect(stepX, 1, 0, origin.distance, stepX.y)
-                : inspect(stepY, 0, 1, origin.distance, stepY.x);
-
-            if (nextStep.distance > range) return [origin];
-            return [origin].concat(ray(nextStep));
-        }
-
-        function step(rise, run, x, y, inverted) {
-            if (run === 0) return noWall;
-            var dx = run > 0 ? Math.floor(x + 1) - x : Math.ceil(x - 1) - x;
-            var dy = dx * (rise / run);
-            return {
-                x: inverted ? y + dy : x + dx,
-                y: inverted ? x + dx : y + dy,
-                length2: dx * dx + dy * dy
-            };
-        }
-
-        function inspect(step, shiftX, shiftY, distance, offset) {
-            var dx = cos < 0 ? shiftX : 0;
-            var dy = sin < 0 ? shiftY : 0;
-            step.height = self.get(step.x - dx, step.y - dy);
-            step.distance = distance + Math.sqrt(step.length2);
-            if (shiftX) step.shading = cos < 0 ? 2 : 0;
-            else step.shading = sin < 0 ? 2 : 1;
-            step.offset = offset - Math.floor(offset);
-            return step;
-        }
-    }
 }
 
+var drawPlane = document.getElementById('screen-render');
+drawPlane.height = parseInt(drawPlane.style.height);
+drawPlane.width = parseInt(drawPlane.style.width);
 var map = new Map(32)
-var player = new Player(10, 10, 0, 0);
-var camera = new Camera(player, document.getElementById('screen-render'), 320, 0.8);
+var player = new Player(10, 6, 0, 0);
+var camera = new Camera(player, drawPlane, 320, 0.8);
 var game = new Game(player, map);
 
 game.gameCycle();

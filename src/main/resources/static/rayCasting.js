@@ -321,13 +321,14 @@ class Camera {
         this.drawFloor();
         this.drawCeiling();
 
-        this.drawColumns(this.player, map);
+        var hitMap = this.drawColumns(this.player, map);
+        debugger;
 
-        this.drawSprites(player, game.gameObjects);
+        this.drawSprites(player, game.gameObjects, hitMap);
 
     }
 
-    drawSprites(player, gameObjects) {
+    drawSprites(player, gameObjects, hitmap) {
         gameObjects.sort(function (a, b) {
             return a.distanceForPlayer - b.distanceForPlayer;
         });
@@ -382,6 +383,7 @@ class Camera {
 
 
     drawColumns(player, map) {
+        var hitMap = [];
         this.ctx.save();
         var allObjects = [];
         for (var column = 0; column < this.resolution; column++) {
@@ -389,18 +391,18 @@ class Camera {
             var angle = Math.atan2(x, this.fov);
 
             var ray = map.cast(player, player.rotation + angle, this.range);
-            this.drawColumn(column, ray, angle, map);
-
+            this.drawColumn(column, ray, angle, map, hitMap);
         }
         this.ctx.restore();
-
+        return hitMap;
     }
 
-    drawColumn(column, ray, angle, map) {
+    drawColumn(column, ray, angle, map, hitMap) {
         var ctx = this.ctx;
         var texture = map.wallTexture[ray.height - 1];
         var left = Math.floor(column * this.spacing);
         var width = Math.ceil(this.spacing);
+        hitMap.pop(ray.distance);
         if (ray.height > 0) {
             var textureX = Math.floor(texture.width * ray.offset);
             var wall = this.project(ray.height, angle, ray.distance);

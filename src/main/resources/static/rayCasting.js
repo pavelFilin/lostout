@@ -317,12 +317,21 @@ class Camera {
         };
     }
 
+    projectSprite(height, angle, distance) {
+        var z = distance;
+        var wallHeight = this.height / z;
+        var bottom = this.height / 2 * (1 + 1 / z);
+        return {
+            top: bottom - wallHeight,
+            height: wallHeight
+        };
+    }
+
     render(player, map) {
         this.drawFloor();
         this.drawCeiling();
 
         var hitMap = this.drawColumns(this.player, map);
-        debugger;
 
         this.drawSprites(player, game.gameObjects, hitMap);
 
@@ -341,25 +350,34 @@ class Camera {
 
             var angle = Math.atan2(dy, dx) - player.rotation % (Math.PI * 2);
 
-            console.log("atan2: " + Math.atan2(dy, dx));
-            var viewDist = (800 / 2) / Math.tan((this.fov / 2));
-            var ar = Math.tan((this.fov / 2));
-            console.log("logar: " + ar);
-            var x = (Math.tan(angle) + 0.5) * drawPlane.width;
-            console.log(player.rotation);
 
             if (angle < -Math.PI) angle += 2 * Math.PI;
             if (angle >= Math.PI) angle -= 2 * Math.PI;
             if (angle > -Math.PI * 0.5 && angle < Math.PI * 0.5) {
-                // angle += Math.PI/2
-                console.log("object: " + angle);
+                var xLeft = (Math.tan(angle) + 0.5) * this.resolution;
+
+                var textureX = 0;
                 var distSquared = dx * dx + dy * dy;
                 var dist = Math.sqrt(distSquared);
-                var picture = this.project(1, angle, dist);
-                this.ctx.save();
+                var picture = this.projectSprite(1, angle, dist);
                 var widthImg = img.width * (picture.height / img.height);
-                this.ctx.drawImage(img.image, 0, 0, img.width, img.height, x, picture.top, widthImg, picture.height);
-                this.ctx.restore();
+                var widthCol = widthImg/this.spacing ;
+
+                let colBegin = Math.floor(xLeft)
+                for (let col = Math.floor(xLeft); col < colBegin + widthImg; col++) {
+                    textureX++;
+
+                    if (dist < hitmap[col]) {
+                        this.ctx.save();
+                        let left = xLeft * this.spacing;
+                        // this.ctx.drawImage(img.image, 0, 0, img.width, img.height, x - widthImg / 2, picture.top, widthImg, picture.height);
+                        this.ctx.drawImage(img.image, textureX, 0, 1, img.height, col * this.spacing, picture.top, Math.ceil(this.spacing), picture.height);
+                        // ctx.drawImage(texture.image, textureX, 0, 1, texture.height, left, wall.top, width, wall.height);
+                        // ctx.drawImage(sprite.texture.image, textureX, 0, 1, sprite.texture.height, left, sprite.render.top, width, sprite.render.height);
+
+                        this.ctx.restore();
+                    }
+                }
 
             }
         }
@@ -402,7 +420,7 @@ class Camera {
         var texture = map.wallTexture[ray.height - 1];
         var left = Math.floor(column * this.spacing);
         var width = Math.ceil(this.spacing);
-        hitMap.pop(ray.distance);
+        hitMap.push(ray.distance);
         if (ray.height > 0) {
             var textureX = Math.floor(texture.width * ray.offset);
             var wall = this.project(ray.height, angle, ray.distance);

@@ -9,6 +9,10 @@ class Game {
 
     initialize() {
         this.gameObjects.push(new Sprite(new Bitmap("textures/barrel.png", 64, 64), 2, 2));
+        this.gameObjects.push(new Sprite(new Bitmap("textures/barrel.png", 64, 64), 2, 3));
+        this.gameObjects.push(new Sprite(new Bitmap("textures/barrel.png", 64, 64), 4, 2));
+        this.gameObjects.push(new Sprite(new Bitmap("textures/barrel.png", 64, 64), 5, 2));
+        this.gameObjects.push(new Enemy(new Bitmap("textures/guard.png", 64, 64), 2, 5, 100));
         bindKeys(this.player);
     }
 
@@ -18,7 +22,7 @@ class Game {
         game.player.move();
         camera.render(this.player, map);
         game.minimapObj.drawMiniMap(game.player);
-        game.gameObjects.every(value => value.calculateDistancesToSprites(game.player));
+        game.reCalcDistanceForPlayer(game.gameObjects, game.player);
 
         var fps = 1000 / (thisLoop - game.lastLoop);
         game.lastLoop = thisLoop;
@@ -27,6 +31,13 @@ class Game {
 
         setTimeout(game.gameCycle, 1000 / 30);
     }
+
+    reCalcDistanceForPlayer(gameObjects, player) {
+        for (let i= 0; i<gameObjects.length; i++ ) {
+            gameObjects[i].calculateDistancesToSprites(player);
+        }
+    }
+
 
     printFPS(fps) {
         camera.ctx.save;
@@ -48,6 +59,7 @@ class Player {
         this.moveSpeed = 0.18;
         this.rotationSpeed = 6 * Math.PI / 180;
         this.mouseRatationSpeed = 2 * Math.PI / 180;
+        this.hp = 100;
     }
 
     move() {
@@ -197,7 +209,6 @@ class MiniMap {
         var miniMapDoc = document.getElementById("minimap");
         miniMapDoc.width = this.mapWidth * this.miniMapScale;
         miniMapDoc.height = this.mapHeight * this.miniMapScale;
-        // Resize the canvas CSS dimensions
         miniMapDoc.style.width = (this.mapWidth * this.miniMapScale) + 'px';
         miniMapDoc.style.height = (this.mapHeight * this.miniMapScale) + 'px';
 
@@ -295,9 +306,9 @@ class Bitmap {
 }
 
 class Camera {
-    constructor(player, canvas, resolution, fov) {
+    constructor(player, canvas, resolution, fov, ctx) {
         this.player = player;
-        this.ctx = canvas.getContext('2d');
+        this.ctx = ctx;
         this.width = canvas.width;
         this.height = canvas.height;
         this.resolution = resolution;
@@ -337,8 +348,8 @@ class Camera {
     }
 
     drawSprites(player, gameObjects, hitmap) {
-        gameObjects.sort(function (a, b) {
-            return a.distanceForPlayer - b.distanceForPlayer;
+        gameObjects.sort(function (b, a) {
+            return Math.abs(a.distanceForPlayer) - Math.abs(b.distanceForPlayer);
         });
 
         for (let i = 0; i < gameObjects.length; i++) {
@@ -370,6 +381,7 @@ class Camera {
                 var t = img.width / 2;
                 var w = img.width/widthImg;
                 var wb = w;
+                this.ctx.save();
                 for (let r = widthImg / 2; r < widthImg; r++) {
                     if (dist < hitmap[Math.floor((xLeft + r) / this.spacing)]) {
                         this.ctx.drawImage(img.image, Math.floor(w) + img.width /2, 0, 1, img.height, r + xLeft, picture.top, this.spacing, picture.height);
@@ -381,9 +393,9 @@ class Camera {
                     if (dist < hitmap[Math.floor((xLeft - r +widthImg/2) / this.spacing)]) {
                         this.ctx.drawImage(img.image, Math.floor(w), 0, 1, img.height, xLeft- r  +widthImg/2, picture.top, 1, picture.height);
                     }
-                    w+=wb;
+                    w-=wb;
                 }
-
+                this.ctx.restore();
             }
         }
     }
@@ -448,14 +460,39 @@ class Sprite {
     }
 }
 
+class Enemy extends Sprite{
+   constructor(bitmap, x, y, hp) {
+       super(bitmap, x ,y);
+       this.hp = hp;
+   }
+}
 
-var drawPlane = document.getElementById('screen-render');
-drawPlane.height = parseInt(drawPlane.style.height);
-drawPlane.width = parseInt(drawPlane.style.width);
-var map = new Map(32);
+class Hud {
+    constructor(player, width, height, ctx) {
+        this.player = player;
+        this.width = width;
+        this.height = height;
+        this.ctx = ctx;
+    }
 
-var player = new Player(10, 6, 0, 0);
-var camera = new Camera(player, drawPlane, 400, 0.8);
-var game = new Game(player, map);
 
-game.gameCycle();
+
+}
+
+
+function startGame() {
+    var drawPlane = document.getElementById('screen-render');
+    drawPlane.height = parseInt(drawPlane.style.height);
+    drawPlane.width = parseInt(drawPlane.style.width);
+
+    ctx = drawPlane.canvas.getContext('2d');
+    var map = new Map(32);
+
+    var player = new Player(10, 6, 0, 0);
+    var camera = new Camera(player, drawPlane, 400, 0.8, ctx);
+    var game = new Game(player, map);
+
+    game.gameCycle();
+}
+
+startGame();

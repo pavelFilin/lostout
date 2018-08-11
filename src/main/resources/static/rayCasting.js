@@ -58,8 +58,9 @@ class Player {
         this.rotation = rotation;
         this.moveSpeed = 0.18;
         this.rotationSpeed = 6 * Math.PI / 180;
-        this.mouseRatationSpeed = 2 * Math.PI / 180;
+        this.mouseRatationSpeed =  Math.PI / 180;
         this.hp = 100;
+        this.hpMax = 100;
     }
 
     move() {
@@ -69,7 +70,6 @@ class Player {
 
         this.rotation += this.mouseMoveX * this.mouseRatationSpeed;
         this.mouseMoveX = 0;
-
 
         var newX = this.x + Math.cos(this.rotation) * moveStep;
         var newY = this.y + Math.sin(this.rotation) * moveStep;
@@ -98,6 +98,7 @@ class Map {
             new Bitmap('textures/redbrick.png', 64, 64),
             new Bitmap('textures/wood.png', 64, 64),
         ];
+
         this.wallGrid = [
             [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
             [1, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 0, 0, 0, 0, 0, 0, 8, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
@@ -480,14 +481,43 @@ class Hud {
 
     drawHud() {
         this.drawCrosshair();
+        this.drawHpBar();
     }
 
     drawCrosshair() {
         let xCross = this.width / 2 - crosshairTexture.width / 2;
-        let yCross = this.height / 2 - crosshairTexture.height / 2;
+        let yCross = this.height * 5 / 9 - crosshairTexture.height / 2;
         let crosshairSize = 0.6;
+        this.ctx.globalAlpha = 0.3;
         this.ctx.drawImage(crosshairTexture.image, xCross, yCross, crosshairTexture.width * crosshairSize, crosshairTexture.height * crosshairSize);
+        this.ctx.globalAlpha = 1;
     }
+
+    drawHpBar() {
+
+        var hpBar = {
+            x: this.width/30,
+            y: this.width*7/10,
+            width: 200,
+            height: 20
+        };
+
+        this.ctx.fillStyle = "Red";
+        this.ctx.font = "18px sans-serif";
+        if (player.hp==player.hpMax){
+            this.ctx.fillText("Life " + player.hp, hpBar.x, hpBar.y -10);
+        } else {
+            this.ctx.fillText("Life " + player.hp +"/"+ player.hpMax, hpBar.x, hpBar.y -10);
+
+        }
+
+        this.ctx.fillStyle = "black";
+        this.ctx.fillRect(hpBar.x, hpBar.y, hpBar.width, hpBar.height);
+
+        this.ctx.fillStyle = "red";
+        this.ctx.fillRect(hpBar.x, hpBar.y, hpBar.width * player.hp/100, hpBar.height);
+    }
+
 
 }
 
@@ -500,7 +530,11 @@ var player = new Player(10, 6, 0, 0);
 var camera = new Camera(player, drawPlane, 400, 0.8);
 var game = new Game(player, map);
 
-var crosshairTexture = new Bitmap("textures/crosshair.png", 76, 76)
+var crosshairTexture = new Bitmap("textures/crosshair.png", 76, 76);
+
+document.body.onclick = document.body.requestPointerLock ||
+    document.body.mozRequestPointerLock ||
+    document.body.webkitRequestPointerLock;
 
 game.gameCycle();
 

@@ -33,7 +33,7 @@ class Game {
     }
 
     reCalcDistanceForPlayer(gameObjects, player) {
-        for (let i= 0; i<gameObjects.length; i++ ) {
+        for (let i = 0; i < gameObjects.length; i++) {
             gameObjects[i].calculateDistancesToSprites(player);
         }
     }
@@ -306,15 +306,16 @@ class Bitmap {
 }
 
 class Camera {
-    constructor(player, canvas, resolution, fov, ctx) {
+    constructor(player, canvas, resolution, fov) {
         this.player = player;
-        this.ctx = ctx;
+        this.ctx = canvas.getContext('2d');
         this.width = canvas.width;
         this.height = canvas.height;
         this.resolution = resolution;
         this.spacing = this.width / resolution;
         this.fov = fov;
         this.range = 16;
+        this.hud = new Hud(this.player, this.width, this.height, this.ctx);
     }
 
     project(height, angle, distance) {
@@ -345,6 +346,8 @@ class Camera {
 
         this.drawSprites(player, game.gameObjects, hitMap);
 
+        this.hud.drawHud();
+
     }
 
     drawSprites(player, gameObjects, hitmap) {
@@ -364,7 +367,7 @@ class Camera {
             if (angle < -Math.PI) angle += 2 * Math.PI;
             if (angle >= Math.PI) angle -= 2 * Math.PI;
             if (angle > -Math.PI * 0.5 && angle < Math.PI * 0.5) {
-                var xLeft = (Math.tan(angle) + 0.5) * this.resolution*this.spacing;
+                var xLeft = (Math.tan(angle) + 0.5) * this.resolution * this.spacing;
 
                 var textureX = xLeft;
                 var distSquared = dx * dx + dy * dy;
@@ -379,21 +382,21 @@ class Camera {
 
                 var xTextureCenter = xLeft + widthImg / 2;
                 var t = img.width / 2;
-                var w = img.width/widthImg;
+                var w = img.width / widthImg;
                 var wb = w;
                 this.ctx.save();
                 for (let r = widthImg / 2; r < widthImg; r++) {
                     if (dist < hitmap[Math.floor((xLeft + r) / this.spacing)]) {
-                        this.ctx.drawImage(img.image, Math.floor(w) + img.width /2, 0, 1, img.height, r + xLeft, picture.top, this.spacing, picture.height);
+                        this.ctx.drawImage(img.image, Math.floor(w) + img.width / 2, 0, 1, img.height, r + xLeft, picture.top, this.spacing, picture.height);
                     }
-                    w+=wb;
+                    w += wb;
                 }
 
-                for (let r = 0; r < widthImg/2; r++) {
-                    if (dist < hitmap[Math.floor((xLeft - r +widthImg/2) / this.spacing)]) {
-                        this.ctx.drawImage(img.image, Math.floor(w), 0, 1, img.height, xLeft- r  +widthImg/2, picture.top, 1, picture.height);
+                for (let r = 0; r < widthImg / 2; r++) {
+                    if (dist < hitmap[Math.floor((xLeft - r + widthImg / 2) / this.spacing)]) {
+                        this.ctx.drawImage(img.image, Math.floor(w), 0, 1, img.height, xLeft - r + widthImg / 2, picture.top, 1, picture.height);
                     }
-                    w-=wb;
+                    w -= wb;
                 }
                 this.ctx.restore();
             }
@@ -460,11 +463,11 @@ class Sprite {
     }
 }
 
-class Enemy extends Sprite{
-   constructor(bitmap, x, y, hp) {
-       super(bitmap, x ,y);
-       this.hp = hp;
-   }
+class Enemy extends Sprite {
+    constructor(bitmap, x, y, hp) {
+        super(bitmap, x, y);
+        this.hp = hp;
+    }
 }
 
 class Hud {
@@ -475,24 +478,30 @@ class Hud {
         this.ctx = ctx;
     }
 
+    drawHud() {
+        this.drawCrosshair();
+    }
 
+    drawCrosshair() {
+        let xCross = this.width / 2 - crosshairTexture.width / 2;
+        let yCross = this.height / 2 - crosshairTexture.height / 2;
+        let crosshairSize = 0.6;
+        this.ctx.drawImage(crosshairTexture.image, xCross, yCross, crosshairTexture.width * crosshairSize, crosshairTexture.height * crosshairSize);
+    }
 
 }
 
+var drawPlane = document.getElementById('screen-render');
+drawPlane.height = parseInt(drawPlane.style.height);
+drawPlane.width = parseInt(drawPlane.style.width);
+var map = new Map(32);
 
-function startGame() {
-    var drawPlane = document.getElementById('screen-render');
-    drawPlane.height = parseInt(drawPlane.style.height);
-    drawPlane.width = parseInt(drawPlane.style.width);
+var player = new Player(10, 6, 0, 0);
+var camera = new Camera(player, drawPlane, 400, 0.8);
+var game = new Game(player, map);
 
-    ctx = drawPlane.canvas.getContext('2d');
-    var map = new Map(32);
+var crosshairTexture = new Bitmap("textures/crosshair.png", 76, 76)
 
-    var player = new Player(10, 6, 0, 0);
-    var camera = new Camera(player, drawPlane, 400, 0.8, ctx);
-    var game = new Game(player, map);
+game.gameCycle();
 
-    game.gameCycle();
-}
 
-startGame();

@@ -127,7 +127,6 @@ class Map {
         var self = this;
         var sin = Math.sin(angle);
         var cos = Math.cos(angle);
-        var noWall = {length2: Infinity};
         var oneRay = {x: point.x, y: point.y, height: 0, distance: 0}
 
 
@@ -354,29 +353,35 @@ class Camera {
             if (angle < -Math.PI) angle += 2 * Math.PI;
             if (angle >= Math.PI) angle -= 2 * Math.PI;
             if (angle > -Math.PI * 0.5 && angle < Math.PI * 0.5) {
-                var xLeft = (Math.tan(angle) + 0.5) * this.resolution;
+                var xLeft = (Math.tan(angle) + 0.5) * this.resolution*this.spacing;
 
-                var textureX = 0;
+                var textureX = xLeft;
                 var distSquared = dx * dx + dy * dy;
                 var dist = Math.sqrt(distSquared);
                 var picture = this.projectSprite(1, angle, dist);
                 var widthImg = img.width * (picture.height / img.height);
-                var widthCol = widthImg/this.spacing ;
+                var left = 0;
+                var leftT = false;
+                var rightT = false;
+                var right = 0;
+                let colBegin = Math.floor(xLeft);
 
-                let colBegin = Math.floor(xLeft)
-                for (let col = Math.floor(xLeft); col < colBegin + widthImg; col++) {
-                    textureX++;
-
-                    if (dist < hitmap[col]) {
-                        this.ctx.save();
-                        let left = xLeft * this.spacing;
-                        // this.ctx.drawImage(img.image, 0, 0, img.width, img.height, x - widthImg / 2, picture.top, widthImg, picture.height);
-                        this.ctx.drawImage(img.image, textureX, 0, 1, img.height, col * this.spacing, picture.top, Math.ceil(this.spacing), picture.height);
-                        // ctx.drawImage(texture.image, textureX, 0, 1, texture.height, left, wall.top, width, wall.height);
-                        // ctx.drawImage(sprite.texture.image, textureX, 0, 1, sprite.texture.height, left, sprite.render.top, width, sprite.render.height);
-
-                        this.ctx.restore();
+                var xTextureCenter = xLeft + widthImg / 2;
+                var t = img.width / 2;
+                var w = img.width/widthImg;
+                var wb = w;
+                for (let r = widthImg / 2; r < widthImg; r++) {
+                    if (dist < hitmap[Math.floor((xLeft + r) / this.spacing)]) {
+                        this.ctx.drawImage(img.image, Math.floor(w) + img.width /2, 0, 1, img.height, r + xLeft, picture.top, this.spacing, picture.height);
                     }
+                    w+=wb;
+                }
+
+                for (let r = 0; r < widthImg/2; r++) {
+                    if (dist < hitmap[Math.floor((xLeft - r +widthImg/2) / this.spacing)]) {
+                        this.ctx.drawImage(img.image, Math.floor(w), 0, 1, img.height, xLeft- r  +widthImg/2, picture.top, 1, picture.height);
+                    }
+                    w+=wb;
                 }
 
             }

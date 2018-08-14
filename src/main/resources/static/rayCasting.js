@@ -1,35 +1,72 @@
 class Game {
     constructor(player, map) {
+        this.map = map;
         this.minimapObj = new MiniMap(map);
         this.player = player;
         this.lastLoop = new Date;
         this.gameObjects = [];
         this.initialize();
+        this.menu = new Menu(camera.width, camera.height);
+
+        this.numberElements = 10;
+
+        this.movementAbility = false;
+        this.isGameEnd = false;
+
     }
 
     initialize() {
-        this.gameObjects.push(new Sprite(new Bitmap("textures/barrel.png", 64, 64), 2, 2));
-        this.gameObjects.push(new Sprite(new Bitmap("textures/barrel.png", 64, 64), 2, 3));
-        this.gameObjects.push(new Sprite(new Bitmap("textures/barrel.png", 64, 64), 4, 2));
-        this.gameObjects.push(new Sprite(new Bitmap("textures/barrel.png", 64, 64), 5, 2));
         this.gameObjects.push(new Enemy(new Bitmap("textures/guard.png", 64, 64), 2, 5, 100));
         bindKeys(this.player);
+
+        drawPlane.onclick = function (e) {
+            if (game.menu.visible
+                && e.clientX >= game.menu.width / 2 - game.menu.startTextureButton.width / 2
+                && e.clientX <= game.menu.width / 2 + game.menu.startTextureButton.width / 2
+                && e.clientY >= game.menu.height / 2 - game.menu.startTextureButton.height / 2
+                && e.clientY <= game.menu.height / 2 + game.menu.startTextureButton.height / 2) {
+                game.menu.visible = false;
+                game.movementAbility = true;
+                for (let i = 0; i < game.numberElements;) {
+                    let x = Math.random() * 32;
+                    let y = Math.random() * 32;
+                    if (game.map.wallGrid[Math.floor(y)][Math.floor(x)] === 0) {
+                        game.gameObjects.push(new Sprite(new Bitmap("textures/barrel.png", 64, 64), y, x));
+                        i++;
+                    }
+                }
+            } else {
+
+            }
+
+
+        }
     }
 
     gameCycle() {
         var thisLoop = new Date;
 
-        game.player.move();
-        camera.render(this.player, map);
-        game.minimapObj.drawMiniMap(game.player);
-        game.reCalcDistanceForPlayer(game.gameObjects, game.player);
+        if (game.movementAbility) {
+            game.player.move();
+        }
 
-        var fps = 1000 / (thisLoop - game.lastLoop);
-        game.lastLoop = thisLoop;
-        game.printFPS(fps);
+        game.player.rotate();
+        if (!game.isGameEnd) {
+            camera.render(this.player, map);
+            game.minimapObj.drawMiniMap(game.player);
+            game.reCalcDistanceForPlayer(game.gameObjects, game.player);
 
+            var fps = 1000 / (thisLoop - game.lastLoop);
+            game.lastLoop = thisLoop;
+            game.printFPS(fps);
+        }
+
+        if (game.menu.visible) {
+            game.menu.drawMenu();
+        }
 
         setTimeout(game.gameCycle, 1000 / 30);
+
     }
 
     reCalcDistanceForPlayer(gameObjects, player) {
@@ -58,7 +95,7 @@ class Player {
         this.rotation = rotation;
         this.moveSpeed = 0.18;
         this.rotationSpeed = 6 * Math.PI / 180;
-        this.mouseRatationSpeed =  Math.PI / 180;
+        this.mouseRatationSpeed = Math.PI / 180;
         this.hp = 100;
         this.hpMax = 100;
     }
@@ -66,10 +103,6 @@ class Player {
     move() {
         var moveStep = this.speed * this.moveSpeed;
 
-        this.rotation += this.direction * this.rotationSpeed;
-
-        this.rotation += this.mouseMoveX * this.mouseRatationSpeed;
-        this.mouseMoveX = 0;
 
         var newX = this.x + Math.cos(this.rotation) * moveStep;
         var newY = this.y + Math.sin(this.rotation) * moveStep;
@@ -80,6 +113,13 @@ class Player {
 
         this.x = newX;
         this.y = newY;
+    }
+
+    rotate() {
+        this.rotation += this.direction * this.rotationSpeed;
+
+        this.rotation += this.mouseMoveX * this.mouseRatationSpeed;
+        this.mouseMoveX = 0;
     }
 }
 
@@ -113,11 +153,11 @@ class Map {
             [1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 8, 8, 8, 0, 0, 9, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             [1, 0, 0, 1, 1, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 8, 0, 0, 8, 0, 0, 9, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             [1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 8, 0, 0, 2, 4, 2, 9, 9, 9, 9, 9, 0, 0, 0, 0, 1],
-            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 8, 0, 0, 4, 0, 4, 0, 0, 9, 9, 9, 9, 0, 0, 0, 1],
+            [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 8, 0, 0, 4, 1, 4, 0, 0, 9, 9, 9, 9, 0, 0, 0, 1],
             [1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 4, 0, 0, 2, 4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             [1, 0, 0, 0, 0, 1, 0, 0, 0, 6, 6, 6, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 4, 2, 0, 0, 0, 1],
-            [1, 0, 0, 1, 0, 1, 0, 0, 0, 6, 0, 0, 0, 0, 5, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 0, 4, 0, 0, 0, 1],
+            [1, 0, 0, 1, 0, 1, 0, 0, 0, 6, 1, 1, 1, 1, 5, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4, 1, 4, 0, 0, 0, 1],
             [1, 0, 0, 1, 0, 1, 0, 0, 0, 6, 5, 5, 5, 5, 5, 6, 0, 0, 8, 8, 9, 9, 9, 9, 0, 2, 4, 2, 0, 0, 0, 1],
             [1, 0, 0, 1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
             [1, 0, 0, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 6, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 5, 5, 5, 6, 1],
@@ -386,6 +426,7 @@ class Camera {
                 var w = img.width / widthImg;
                 var wb = w;
                 this.ctx.save();
+                this.ctx.globalAlpha = 1;
                 for (let r = widthImg / 2; r < widthImg; r++) {
                     if (dist < hitmap[Math.floor((xLeft + r) / this.spacing)]) {
                         this.ctx.drawImage(img.image, Math.floor(w) + img.width / 2, 0, 1, img.height, r + xLeft, picture.top, this.spacing, picture.height);
@@ -393,6 +434,8 @@ class Camera {
                     w += wb;
                 }
 
+
+                this.ctx.globalAlpha = 1;
                 for (let r = 0; r < widthImg / 2; r++) {
                     if (dist < hitmap[Math.floor((xLeft - r + widthImg / 2) / this.spacing)]) {
                         this.ctx.drawImage(img.image, Math.floor(w), 0, 1, img.height, xLeft - r + widthImg / 2, picture.top, 1, picture.height);
@@ -448,7 +491,6 @@ class Camera {
             ctx.drawImage(texture.image, textureX, 0, 1, texture.height, left, wall.top, width, wall.height);
         }
     }
-
 }
 
 class Sprite {
@@ -496,18 +538,18 @@ class Hud {
     drawHpBar() {
 
         var hpBar = {
-            x: this.width/30,
-            y: this.width*7/10,
+            x: this.width / 30,
+            y: this.width * 7 / 10,
             width: 200,
             height: 20
         };
 
         this.ctx.fillStyle = "Red";
         this.ctx.font = "18px sans-serif";
-        if (player.hp==player.hpMax){
-            this.ctx.fillText("Life " + player.hp, hpBar.x, hpBar.y -10);
+        if (player.hp == player.hpMax) {
+            this.ctx.fillText("Life " + player.hp, hpBar.x, hpBar.y - 10);
         } else {
-            this.ctx.fillText("Life " + player.hp +"/"+ player.hpMax, hpBar.x, hpBar.y -10);
+            this.ctx.fillText("Life " + player.hp + "/" + player.hpMax, hpBar.x, hpBar.y - 10);
 
         }
 
@@ -515,15 +557,35 @@ class Hud {
         this.ctx.fillRect(hpBar.x, hpBar.y, hpBar.width, hpBar.height);
 
         this.ctx.fillStyle = "red";
-        this.ctx.fillRect(hpBar.x, hpBar.y, hpBar.width * player.hp/100, hpBar.height);
+        this.ctx.fillRect(hpBar.x, hpBar.y, hpBar.width * player.hp / 100, hpBar.height);
     }
 
 
 }
 
+class Menu {
+    constructor(width, height) {
+        this.width = width;
+        this.height = height;
+        this.visible = true;
+        this.startTextureButton = new Bitmap("textures/startButton.png", 339, 107);
+    }
+
+    drawMenu() {
+        this.drawStartButton();
+    }
+
+    drawStartButton() {
+        camera.ctx.drawImage(this.startTextureButton.image, this.width / 2 - this.startTextureButton.width / 2, this.height / 2 - this.startTextureButton.height / 2)
+    }
+}
+
 var drawPlane = document.getElementById('screen-render');
+
+
 drawPlane.height = parseInt(drawPlane.style.height);
 drawPlane.width = parseInt(drawPlane.style.width);
+
 var map = new Map(32);
 
 var player = new Player(10, 6, 0, 0);
@@ -532,10 +594,7 @@ var game = new Game(player, map);
 
 var crosshairTexture = new Bitmap("textures/crosshair.png", 76, 76);
 
-document.body.onclick = document.body.requestPointerLock ||
-    document.body.mozRequestPointerLock ||
-    document.body.webkitRequestPointerLock;
+document.body.ondblclick = document.body.requestPointerLock || document.body.mozRequestPointerLock || document.body.webkitRequestPointerLock;
+
 
 game.gameCycle();
-
-

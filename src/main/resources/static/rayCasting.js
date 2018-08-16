@@ -1,23 +1,27 @@
 class Game {
     constructor(player, map) {
+        this.FPS = 30;
+        this.DISTANCE_ACTION = 0.8;
+        this.NUMBER_ELEMENTS = 10;
+
         this.map = map;
         this.minimapObj = new MiniMap(map);
         this.player = player;
         this.lastLoop = new Date;
         this.gameObjects = [];
-        this.initialize();
         this.menu = new Menu(camera.width, camera.height);
 
-        this.numberElements = 10;
+        this.initialize();
 
         this.movementAbility = false;
         this.isGameEnd = false;
-
     }
 
     initialize() {
-        this.gameObjects.push(new Enemy(new Bitmap("textures/guard.png", 64, 64), 2, 5, 100));
+        // this.gameObjects.push(new Enemy(new Bitmap("textures/guard.png", 64, 64), 2, 5, 100));
         bindKeys(this.player);
+
+        this.minimapObj.visible = true;
 
         drawPlane.onclick = function (e) {
             if (game.menu.visible
@@ -27,46 +31,78 @@ class Game {
                 && e.clientY <= game.menu.height / 2 + game.menu.startTextureButton.height / 2) {
                 game.menu.visible = false;
                 game.movementAbility = true;
-                for (let i = 0; i < game.numberElements;) {
-                    let x = Math.random() * 32;
-                    let y = Math.random() * 32;
+                for (let i = 0; i < game.NUMBER_ELEMENTS;) {
+                    let x = Math.floor(Math.random() * 32) + 0.5;
+                    let y = Math.floor(Math.random() * 32) + 0.5;
                     if (game.map.wallGrid[Math.floor(y)][Math.floor(x)] === 0) {
-                        game.gameObjects.push(new Sprite(new Bitmap("textures/barrel.png", 64, 64), y, x));
+                        game.gameObjects.push(new Sprite(new Bitmap("textures/barrel.png", 64, 64), x, y));
                         i++;
                     }
                 }
-            } else {
-
             }
-
-
         }
+
+        document.body.onkeypress = function (e) {
+            if (e.key == 'm') {
+                game.minimapObj.visible = !game.minimapObj.visible;
+                if (game.minimapObj.visible) {
+                    game.minimapObj.miniMapDoc.style.visibility = 'visible';
+                } else {
+                    game.minimapObj.miniMapDoc.style.visibility = 'hidden';
+                }
+            }
+        }
+
     }
 
     gameCycle() {
         var thisLoop = new Date;
-
+        var elapsed = thisLoop - game.lastLoop;
         if (game.movementAbility) {
-            game.player.move();
+            game.player.move(elapsed);
         }
 
-        game.player.rotate();
-        if (!game.isGameEnd) {
-            camera.render(this.player, map);
-            game.minimapObj.drawMiniMap(game.player);
-            game.reCalcDistanceForPlayer(game.gameObjects, game.player);
+        game.player.rotate(elapsed);
 
-            var fps = 1000 / (thisLoop - game.lastLoop);
-            game.lastLoop = thisLoop;
-            game.printFPS(fps);
+        if (!game.isGameEnd) {
+            game.reCalcDistanceForPlayer(game.gameObjects, game.player);
+            game.takeSubjects();
+            camera.render(game.player, map);
+            game.player.weapon.draw(elapsed);
+
+        } else {
+            //todo game end
         }
 
         if (game.menu.visible) {
             game.menu.drawMenu();
         }
 
-        setTimeout(game.gameCycle, 1000 / 30);
+        if (game.minimapObj.visible) {
+            game.minimapObj.drawMiniMap();
+            game.minimapObj.drawPlayer(game.player);
+        }
 
+        var fps = 1000 / (thisLoop - game.lastLoop);
+        game.lastLoop = thisLoop;
+        game.printFPS(fps);
+
+        setTimeout(game.gameCycle, (1000 / game.FPS) - elapsed / 10);
+
+    }
+
+    takeSubjects() {
+        if (isPressF && game.gameObjects.length > 0) {
+            game.reCalcDistanceForPlayer(game.gameObjects, game.player);
+            game.gameObjects.sort(function (b, a) {
+                return Math.abs(a.distanceForPlayer) - Math.abs(b.distanceForPlayer);
+            });
+            let lastIndex = game.gameObjects.length - 1;
+            if (game.gameObjects[lastIndex].distanceForPlayer < game.DISTANCE_ACTION) {
+                game.gameObjects = game.gameObjects.splice(0, lastIndex);
+                game.player.hp = (game.NUMBER_ELEMENTS - game.gameObjects.length) * player.hpMax / game.NUMBER_ELEMENTS;
+            }
+        }
     }
 
     reCalcDistanceForPlayer(gameObjects, player) {
@@ -79,30 +115,31 @@ class Game {
     printFPS(fps) {
         camera.ctx.save;
         camera.ctx.fillStyle = "black";
-        camera.ctx.font = "50px arial";
-        camera.ctx.fillText(Math.round(fps), 20, 70);
+        camera.ctx.font = "40px Tahoma";
+        camera.ctx.fillText(Math.round(fps), 0, 40);
         camera.ctx.restore();
     }
 }
 
+
 class Player {
-    constructor(x, y, direction, rotation) {
+    constructor(x, y, direction, rotation, weapon) {
+        this.weapon = weapon;
         this.x = x;
         this.y = y;
         this.direction = direction;
         this.mouseMoveX = 0;
         this.speed = 0;
         this.rotation = rotation;
-        this.moveSpeed = 0.18;
-        this.rotationSpeed = 6 * Math.PI / 180;
-        this.mouseRatationSpeed = Math.PI / 180;
+        this.moveSpeed = 0.0035;
+        this.rotationSpeed = Math.PI / 1800;
+        this.mouseRatationSpeed = 0.25 * Math.PI / 1800;
         this.hp = 100;
         this.hpMax = 100;
     }
 
-    move() {
-        var moveStep = this.speed * this.moveSpeed;
-
+    move(elapsedTime) {
+        var moveStep = this.speed * this.moveSpeed * elapsedTime;
 
         var newX = this.x + Math.cos(this.rotation) * moveStep;
         var newY = this.y + Math.sin(this.rotation) * moveStep;
@@ -111,14 +148,24 @@ class Player {
             return;
         }
 
+        if ((newX != this.x || newY != this.y)) {
+            if (Math.abs(this.weapon.y) > this.weapon.shift || this.weapon.y > 0) {
+                this.weapon.shiftDirection = -this.weapon.shiftDirection;
+            }
+
+            this.weapon.y -= this.weapon.shiftDirection * this.moveSpeed * elapsedTime;
+        }
+
         this.x = newX;
         this.y = newY;
+
+
     }
 
-    rotate() {
-        this.rotation += this.direction * this.rotationSpeed;
+    rotate(elapsedTime) {
+        this.rotation += this.direction * this.rotationSpeed * elapsedTime;
 
-        this.rotation += this.mouseMoveX * this.mouseRatationSpeed;
+        this.rotation += this.mouseMoveX * this.mouseRatationSpeed * elapsedTime;
         this.mouseMoveX = 0;
     }
 }
@@ -240,26 +287,28 @@ class Map {
 
 class MiniMap {
     constructor(map) {
+        this.visible = false;
         this.map = map;
         this.mapWidth = map.wallGrid[0].length;
         this.mapHeight = map.wallGrid.length;
         this.miniMapScale = 8;
+        this.miniMapDoc = document.getElementById("minimap")
+        this.ctx = this.miniMapDoc.getContext('2d');
     }
 
-    drawMiniMap(player) {
-        var miniMapDoc = document.getElementById("minimap");
-        miniMapDoc.width = this.mapWidth * this.miniMapScale;
-        miniMapDoc.height = this.mapHeight * this.miniMapScale;
-        miniMapDoc.style.width = (this.mapWidth * this.miniMapScale) + 'px';
-        miniMapDoc.style.height = (this.mapHeight * this.miniMapScale) + 'px';
+    drawMiniMap() {
+        this.miniMapDoc.width = this.mapWidth * this.miniMapScale;
+        this.miniMapDoc.height = this.mapHeight * this.miniMapScale;
+        this.miniMapDoc.style.width = (this.mapWidth * this.miniMapScale) + 'px';
+        this.miniMapDoc.style.height = (this.mapHeight * this.miniMapScale) + 'px';
 
-        var ctx = miniMapDoc.getContext('2d');
+
         for (let y = 0; y < this.mapHeight; y++) {
             for (let x = 0; x < this.mapWidth; x++) {
                 var wall = map.wallGrid[y][x];
                 if (wall > 0) {
-                    ctx.fillStyle = 'rgb(200,200,200)';
-                    ctx.fillRect(
+                    this.ctx.fillStyle = "#737373";
+                    this.ctx.fillRect(
                         x * this.miniMapScale,
                         y * this.miniMapScale,
                         this.miniMapScale, this.miniMapScale
@@ -267,14 +316,57 @@ class MiniMap {
                 }
             }
         }
+    }
 
-        ctx.fillRect(player.x * this.miniMapScale - 2, player.y * this.miniMapScale - 2, 4, 4);
+    drawPlayer(player) {
+        this.ctx.fillStyle = "#47dc31";
+        this.ctx.fillRect(player.x * this.miniMapScale - 2, player.y * this.miniMapScale - 2, 4, 4);
 
-        ctx.beginPath();
-        ctx.moveTo(player.x * this.miniMapScale, player.y * this.miniMapScale);
-        ctx.lineTo((player.x + Math.cos(player.rotation) * 4) * this.miniMapScale, (player.y + Math.sin(player.rotation) * 4) * this.miniMapScale);
-        ctx.closePath();
-        ctx.stroke();
+        this.ctx.beginPath();
+        this.ctx.moveTo(player.x * this.miniMapScale, player.y * this.miniMapScale);
+        this.ctx.lineTo((player.x + Math.cos(player.rotation) * 4) * this.miniMapScale, (player.y + Math.sin(player.rotation) * 4) * this.miniMapScale);
+        this.ctx.closePath();
+        this.ctx.stroke();
+    }
+}
+
+class Weapon {
+    constructor(name, bitmap, damage, screenWidth, screenHeight, ctx) {
+        this.size = 0.4;
+        this.shift = 40;
+        this.shiftDirection = 15;
+        this.name = name;
+        this.bitmap = bitmap;
+        this.damage = damage;
+        this.screenWidth = screenWidth;
+        this.screenHeight = screenHeight;
+        this.x = 0;
+        this.y = 0;
+        this.isAttack = false;
+        this.timeAnimation = 1000;
+        this.elapsed = 0;
+        this.ctx = ctx;
+    }
+
+    draw(gameTime) {
+        let left = this.screenWidth - this.bitmap.width * this.size - this.x;
+        let top = this.screenHeight - this.bitmap.height * this.size - this.y;
+        if(!this.isAttack) {
+            this.ctx.drawImage(this.bitmap.image, left, top, this.bitmap.width * this.size, this.bitmap.height * this.size);
+        } else {
+            this.drawAttack(gameTime, left, top);
+        }
+
+    }
+    drawAttack(gametime, left, top) {
+        this.elapsed +=gametime;
+        if (this.elapsed < this.timeAnimation) {
+            this.ctx.rotate
+        } else {
+            this.isAttack = !this.isAttack;
+            this.elapsed = 0;
+            this.draw(gametime);
+        }
     }
 }
 
@@ -306,6 +398,10 @@ function bindKeys(player) {
                 player.direction = 1;
             }
                 break;
+            case 70: {
+                isPressF = 1;
+            }
+                break;
         }
     }
 
@@ -324,6 +420,11 @@ function bindKeys(player) {
                 player.direction = 0;
             }
                 break;
+            case 70: {
+                isPressF = 0;
+            }
+                break;
+
         }
     }
 
@@ -383,7 +484,7 @@ class Camera {
         this.drawFloor();
         this.drawCeiling();
 
-        var hitMap = this.drawColumns(this.player, map);
+        var hitMap = this.drawColumns(player, map);
 
         this.drawSprites(player, game.gameObjects, hitMap);
 
@@ -578,8 +679,15 @@ class Menu {
     drawStartButton() {
         camera.ctx.drawImage(this.startTextureButton.image, this.width / 2 - this.startTextureButton.width / 2, this.height / 2 - this.startTextureButton.height / 2)
     }
+
+    drawGameOverMenu() {
+        camera.ctx.ctx.font = "40px Press Start 2P";
+        camera.ctx.textAlign = "center";
+        camera.ctx.fillText("textAlign=center", this.width / 2, this.height + 80 / 2);
+    }
 }
 
+var isPressF = 0;
 var drawPlane = document.getElementById('screen-render');
 
 
@@ -587,9 +695,9 @@ drawPlane.height = parseInt(drawPlane.style.height);
 drawPlane.width = parseInt(drawPlane.style.width);
 
 var map = new Map(32);
-
-var player = new Player(10, 6, 0, 0);
 var camera = new Camera(player, drawPlane, 400, 0.8);
+
+var player = new Player(10, 6, 0, 0, new Weapon("Dragon hook", new Bitmap("textures/dragonhook.png", 726, 868), 20, camera.width, camera.height, camera.ctx));
 var game = new Game(player, map);
 
 var crosshairTexture = new Bitmap("textures/crosshair.png", 76, 76);

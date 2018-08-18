@@ -30,6 +30,8 @@ class Game {
                 && e.clientY >= game.menu.height / 2 - game.menu.startTextureButton.height / 2
                 && e.clientY <= game.menu.height / 2 + game.menu.startTextureButton.height / 2) {
                 game.menu.visible = false;
+                game.isGameEnd = false;
+                game.player.hp = 100;
                 game.movementAbility = true;
                 for (let i = 0; i < game.NUMBER_ELEMENTS;) {
                     let x = Math.floor(Math.random() * 32) + 0.5;
@@ -40,7 +42,7 @@ class Game {
                     }
                 }
             }
-        }
+        };
 
         document.body.onkeypress = function (e) {
             if (e.key == 'm') {
@@ -55,9 +57,18 @@ class Game {
 
     }
 
+    toggleGameEnd() {
+        game.isGameEnd = !game.isGameEnd;
+        game.movementAbility = !game.movementAbility;
+        game.menu.visible = true;
+    }
+
     gameCycle() {
+
         var thisLoop = new Date;
         var elapsed = thisLoop - game.lastLoop;
+
+
         if (game.movementAbility) {
             game.player.move(elapsed);
         }
@@ -71,7 +82,7 @@ class Game {
             game.player.weapon.draw(elapsed);
 
         } else {
-            //todo game end
+            game.menu.drawEndMenu();
         }
 
         if (game.menu.visible) {
@@ -93,6 +104,7 @@ class Game {
 
     takeSubjects() {
         if (isPressF && game.gameObjects.length > 0) {
+            game.player.weapon.isAttack = true;
             game.reCalcDistanceForPlayer(game.gameObjects, game.player);
             game.gameObjects.sort(function (b, a) {
                 return Math.abs(a.distanceForPlayer) - Math.abs(b.distanceForPlayer);
@@ -101,6 +113,11 @@ class Game {
             if (game.gameObjects[lastIndex].distanceForPlayer < game.DISTANCE_ACTION) {
                 game.gameObjects = game.gameObjects.splice(0, lastIndex);
                 game.player.hp = (game.NUMBER_ELEMENTS - game.gameObjects.length) * player.hpMax / game.NUMBER_ELEMENTS;
+
+                if (game.gameObjects.length == 0 && !game.isGameEnd) {
+                    game.toggleGameEnd();
+                }
+
             }
         }
     }
@@ -291,8 +308,10 @@ class MiniMap {
         this.map = map;
         this.mapWidth = map.wallGrid[0].length;
         this.mapHeight = map.wallGrid.length;
-        this.miniMapScale = 8;
-        this.miniMapDoc = document.getElementById("minimap")
+        this.miniMapScale = 6;
+        this.miniMapDoc = document.getElementById("minimap");
+        this.miniMapDoc.style.left = -this.mapWidth * this.miniMapScale - 15 + "px"
+
         this.ctx = this.miniMapDoc.getContext('2d');
     }
 
@@ -307,7 +326,8 @@ class MiniMap {
             for (let x = 0; x < this.mapWidth; x++) {
                 var wall = map.wallGrid[y][x];
                 if (wall > 0) {
-                    this.ctx.fillStyle = "#737373";
+                    this.ctx.fillStyle = "#6c6fb7";
+                    this.ctx.globalAlpha = 0.5;
                     this.ctx.fillRect(
                         x * this.miniMapScale,
                         y * this.miniMapScale,
@@ -343,28 +363,41 @@ class Weapon {
         this.x = 0;
         this.y = 0;
         this.isAttack = false;
-        this.timeAnimation = 1000;
+        this.timeAnimation = 600;
         this.elapsed = 0;
         this.ctx = ctx;
+        this.angle = 0;
+        this.angleSpeed = 0.07;
     }
 
     draw(gameTime) {
         let left = this.screenWidth - this.bitmap.width * this.size - this.x;
         let top = this.screenHeight - this.bitmap.height * this.size - this.y;
-        if(!this.isAttack) {
+        if (!this.isAttack) {
             this.ctx.drawImage(this.bitmap.image, left, top, this.bitmap.width * this.size, this.bitmap.height * this.size);
         } else {
             this.drawAttack(gameTime, left, top);
         }
 
     }
+
     drawAttack(gametime, left, top) {
-        this.elapsed +=gametime;
+        this.elapsed += gametime;
         if (this.elapsed < this.timeAnimation) {
-            this.ctx.rotate
+            if (this.elapsed < this.timeAnimation / 2) {
+                this.angle += this.angleSpeed;
+            } else {
+                this.angle -= this.angleSpeed;
+            }
+            this.ctx.save();
+            this.ctx.translate(left + this.bitmap.width * this.size, top + this.bitmap.height * this.size);
+            this.ctx.rotate(-this.angle);
+            this.ctx.drawImage(this.bitmap.image, -this.bitmap.width * this.size, -this.bitmap.height * this.size, this.bitmap.width * this.size, this.bitmap.height * this.size);
+            this.ctx.restore();
         } else {
             this.isAttack = !this.isAttack;
             this.elapsed = 0;
+            this.angle = 0;
             this.draw(gametime);
         }
     }
@@ -651,7 +684,6 @@ class Hud {
             this.ctx.fillText("Life " + player.hp, hpBar.x, hpBar.y - 10);
         } else {
             this.ctx.fillText("Life " + player.hp + "/" + player.hpMax, hpBar.x, hpBar.y - 10);
-
         }
 
         this.ctx.fillStyle = "black";
@@ -680,10 +712,12 @@ class Menu {
         camera.ctx.drawImage(this.startTextureButton.image, this.width / 2 - this.startTextureButton.width / 2, this.height / 2 - this.startTextureButton.height / 2)
     }
 
-    drawGameOverMenu() {
-        camera.ctx.ctx.font = "40px Press Start 2P";
-        camera.ctx.textAlign = "center";
-        camera.ctx.fillText("textAlign=center", this.width / 2, this.height + 80 / 2);
+    drawEndMenu() {
+        let ctx = camera.ctx;
+        ctx.fillStyle = "Red";
+        ctx.font = "80px sans-serif";
+        ctx.textAlign = "center";
+        ctx.fillText("GAME OVER", camera.width / 2, 100);
     }
 }
 

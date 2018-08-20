@@ -37,7 +37,7 @@ class Game {
                     let x = Math.floor(Math.random() * 32) + 0.5;
                     let y = Math.floor(Math.random() * 32) + 0.5;
                     if (game.map.wallGrid[Math.floor(y)][Math.floor(x)] === 0) {
-                        game.gameObjects.push(new Sprite(new Bitmap("textures/barrel.png", 64, 64), x, y));
+                        game.gameObjects.push(new Sprite(new Bitmap("textures/aquarium.png", 226, 445), x, y));
                         i++;
                     }
                 }
@@ -133,6 +133,7 @@ class Game {
         camera.ctx.save;
         camera.ctx.fillStyle = "black";
         camera.ctx.font = "40px Tahoma";
+        camera.ctx.textAlign = "start";
         camera.ctx.fillText(Math.round(fps), 0, 40);
         camera.ctx.restore();
     }
@@ -192,7 +193,7 @@ class Map {
         this.size = size;
         this.objects = [];
         this.wallTexture = [
-            new Bitmap('textures/wall.png', 64, 64),
+            new Bitmap('textures/bigWall3.png', 500, 500),
             new Bitmap('textures/bluestone.png', 64, 64),
             new Bitmap('textures/colorstone.png', 64, 64),
             new Bitmap('textures/eagle.png', 64, 64),
